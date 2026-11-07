@@ -43,3 +43,7 @@ le GRIB d'origine (coordonnées identiques, écart au plus l'arrondi du format).
   météorologiques à moyen terme, licence
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Les tuiles en
   sont une transformation (découpe et arrondi).
+
+## Licence du code
+
+MIT (voir [LICENSE](LICENSE)). Les données gardent la licence de leur source.
