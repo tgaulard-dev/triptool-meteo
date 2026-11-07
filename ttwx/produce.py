@@ -13,7 +13,7 @@ import numpy as np
 
 from types import ModuleType
 
-from . import arome, ecmwf, icon
+from . import arome, ecmwf, gfs, icon
 from .grib import decode_field
 from .tiles import MISSING, TILE_DEGREES, encode_tile, tile_name
 
@@ -28,7 +28,7 @@ def run_iso(run: datetime) -> str:
     return run.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-MODELS: dict[str, ModuleType] = {arome.MODEL: arome, ecmwf.MODEL: ecmwf, icon.MODEL: icon}
+MODELS: dict[str, ModuleType] = {arome.MODEL: arome, ecmwf.MODEL: ecmwf, gfs.MODEL: gfs, icon.MODEL: icon}
 
 
 def produce(

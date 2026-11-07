@@ -14,6 +14,7 @@ Format des tuiles : [FORMAT.md](FORMAT.md).
 | ECMWF IFS 0,25° | data.ecmwf.int (données ouvertes) | 00 et 12 UTC, jusqu'à H+240 | en place |
 | ICON-EU 0,0625° | opendata.dwd.de | 00, 06, 12 et 18 UTC, jusqu'à H+120 | en place |
 | AROME 0,01° | meteo.data.gouv.fr (paquets Météo-France) | toutes les 3 h, jusqu'à H+51 | en place |
+| GFS 0,25° | noaa-gfs-bdp-pds (archive NOAA sur AWS) | 00, 06, 12 et 18 UTC, jusqu'à H+384 | en place |
 
 ## Fonctionnement
 
@@ -28,6 +29,7 @@ en dernier. Les deux derniers cycles de chaque modèle sont conservés.
 | ECMWF | 2 592 (monde) | ≈ 320 Mo | ≈ 125 Ko | ≈ 1 min 30 |
 | ICON-EU | 180 (Europe) | ≈ 185 Mo | ≈ 1 Mo | ≈ 1 min |
 | AROME | 551 (France, 1° × 1°) | ≈ 800 Mo | ≈ 1,5 Mo | ≈ 8 min (estimé) |
+| GFS | 2 592 (monde) | à mesurer | à mesurer | à mesurer |
 
 Secrets à définir dans le dépôt (Settings → Secrets and variables → Actions) :
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.

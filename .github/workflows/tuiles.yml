@@ -1,7 +1,7 @@
 name: Tuiles météo
 
 # Vérifie chaque heure, pour chaque modèle, si un cycle plus récent que celui
-# publié est complet (ECMWF : 00 et 12 UTC ; ICON-EU : toutes les 6 h ;
+# publié est complet (ECMWF : 00 et 12 UTC ; ICON-EU et GFS : toutes les 6 h ;
 # AROME : toutes les 3 h).
 # Sinon le travail s'arrête en moins d'une minute.
 on:
@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [ecmwf, icon, arome]
+        model: [ecmwf, icon, arome, gfs]
     # Un modèle à la fois par modèle ; les modèles avancent en parallèle.
     concurrency:
       group: tuiles-${{ matrix.model }}

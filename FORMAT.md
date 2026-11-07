@@ -139,3 +139,20 @@ point 0,025° le plus proche. Domaine 37,5° N – 55,4° N, 12° O – 16° E.
 | `cape` | SP2 `CAPE_INS` | J kg-1 | 1 | 0 |
 
 À H+0, la rafale, la pluie et la nébulosité sont absentes (valeur `missing`).
+
+## Paramètres (GFS 0,25°)
+
+Archive ouverte de NOAA sur AWS (`noaa-gfs-bdp-pds`), mêmes fichiers que
+NOMADS. Échéances de l'app : horaires jusqu'à H+120, puis toutes les 3 h
+jusqu'à H+384 (209 échéances). Monde entier, tuiles de 5°.
+
+| Nom | Champ GFS | Unité | scale | offset |
+|---|---|---|---|---|
+| `10u`, `10v` | `UGRD`, `VGRD` à 10 m | m s-1 | 0,01 | 0 |
+| `10fg` | `GUST` en surface | m s-1 | 0,01 | 0 |
+| `2t` | `TMP` à 2 m | K | 0,01 | 273,15 |
+| `tp` | `APCP` « 0-N hour acc », cumul depuis le début du run | kg m-2 (= mm) | 0,1 | 0 |
+| `tcc` | `TCDC` atmosphère entière, valeur instantanée | % | 0,01 | 0 |
+| `cape` | `CAPE` en surface | J kg-1 | 1 | 0 |
+
+À H+0, le cumul de pluie est absent (valeur `missing`).
