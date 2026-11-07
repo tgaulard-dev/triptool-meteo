@@ -29,7 +29,7 @@ en dernier. Les deux derniers cycles de chaque modèle sont conservés.
 | ECMWF | 2 592 (monde) | ≈ 320 Mo | ≈ 125 Ko | ≈ 1 min 30 |
 | ICON-EU | 180 (Europe) | ≈ 185 Mo | ≈ 1 Mo | ≈ 1 min |
 | AROME | 551 (France, 1° × 1°) | ≈ 800 Mo | ≈ 1,5 Mo | ≈ 8 min (estimé) |
-| GFS | 2 592 (monde) | à mesurer | à mesurer | à mesurer |
+| GFS | 2 592 (monde, 209 échéances) | ≈ 1,1 Go | ≈ 430 Ko | ≈ 3 min (GitHub, + 3 min de publication) |
 
 Secrets à définir dans le dépôt (Settings → Secrets and variables → Actions) :
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
