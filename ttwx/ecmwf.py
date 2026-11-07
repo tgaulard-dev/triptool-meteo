@@ -9,18 +9,16 @@ from __future__ import annotations
 
 import json
 import logging
-import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 
+from .http import get, not_found
 from .tiles import Variable
 
 log = logging.getLogger(__name__)
 
 MODEL = "ecmwf"
 BASE_URL = "https://data.ecmwf.int/forecasts"
-USER_AGENT = "triptool-meteo (+https://triptool.app)"
+REQUIRED = {"10u", "10v"}
 
 VARIABLES = [
     Variable("10u", "m s-1", 0.01, 0.0),
@@ -53,29 +51,8 @@ def file_url(run: datetime, step: int, suffix: str) -> str:
     return f"{BASE_URL}/{day}/{cycle}z/ifs/0p25/oper/{name}"
 
 
-def _get(url: str, *, byte_range: tuple[int, int] | None = None, attempts: int = 4) -> bytes:
-    headers = {"User-Agent": USER_AGENT}
-    if byte_range:
-        headers["Range"] = f"bytes={byte_range[0]}-{byte_range[1]}"
-    for attempt in range(attempts):
-        try:
-            request = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(request, timeout=60) as response:
-                return response.read()
-        except urllib.error.HTTPError as error:
-            if error.code == 404:
-                raise
-            if attempt == attempts - 1:
-                raise
-        except (urllib.error.URLError, TimeoutError):
-            if attempt == attempts - 1:
-                raise
-        time.sleep(2 ** attempt)
-    raise RuntimeError("inaccessible")
-
-
 def index(run: datetime, step: int) -> list[dict]:
-    text = _get(file_url(run, step, "index")).decode("utf-8")
+    text = get(file_url(run, step, "index")).decode("utf-8")
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
@@ -89,15 +66,15 @@ def latest_complete_run(now: datetime | None = None) -> datetime:
         try:
             index(candidate, last_step)
             return candidate
-        except urllib.error.HTTPError as error:
-            if error.code != 404:
+        except Exception as error:  # noqa: BLE001
+            if not not_found(error):
                 raise
         candidate -= timedelta(hours=12)
     raise RuntimeError("aucun cycle ECMWF complet trouvé")
 
 
-def download_step(run: datetime, step: int) -> bytes:
-    """Messages GRIB des variables utiles pour une échéance, concaténés."""
+def download_step(run: datetime, step: int) -> list[tuple[str, bytes]]:
+    """Champs d'une échéance : (nom de variable, message GRIB)."""
     wanted = {variable.name for variable in VARIABLES}
     records = [
         record for record in index(run, step)
@@ -106,16 +83,16 @@ def download_step(run: datetime, step: int) -> bytes:
     found = {canonical_name(record["param"]) for record in records}
     # Comme dans l'app : le vent est indispensable, les autres champs non
     # (la rafale ou le cumul peuvent manquer à H+0). Ils restent alors absents.
-    if not {"10u", "10v"} <= found:
+    if not REQUIRED <= found:
         raise RuntimeError(f"h+{step} : vent absent de l'index")
     if found != wanted:
         log.warning("h+%d : paramètres absents %s", step, sorted(wanted - found))
     url = file_url(run, step, "grib2")
-    chunks = []
+    fields = []
     for record in sorted(records, key=lambda r: r["_offset"]):
         start = record["_offset"]
-        chunk = _get(url, byte_range=(start, start + record["_length"] - 1))
+        chunk = get(url, byte_range=(start, start + record["_length"] - 1))
         if len(chunk) != record["_length"] or not chunk.startswith(b"GRIB"):
             raise RuntimeError(f"h+{step} : réponse partielle pour {record['param']}")
-        chunks.append(chunk)
-    return b"".join(chunks)
+        fields.append((canonical_name(record["param"]), chunk))
+    return fields

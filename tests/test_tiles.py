@@ -27,6 +27,16 @@ class TileTests(unittest.TestCase):
         error = np.nanmax(np.abs(values - physical))
         self.assertLessEqual(error, 0.005 + 1e-9)
 
+    def test_packing_is_lossless(self):
+        from ttwx.tiles import pack_values, unpack_values
+
+        rng = np.random.default_rng(2)
+        data = rng.integers(-32768, 32768, size=(2, 3, 4, 7)).astype("<i2")
+        data[0, 0, 0, :] = MISSING
+        data[1, 2, 3, 0] = 32767
+        restored = unpack_values(pack_values(data), data.shape)
+        self.assertTrue(np.array_equal(restored, data))
+
     def test_out_of_range_is_missing(self):
         variable = Variable("tp", "m", 0.0001, 0.0)
         self.assertEqual(variable.quantize(np.array([5.0]))[0], MISSING)

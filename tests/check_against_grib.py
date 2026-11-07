@@ -1,6 +1,6 @@
 """Compare des tuiles produites aux valeurs lues directement dans le GRIB.
 
-Usage : python tests/check_against_grib.py <dossier du cycle> <AAAAMMJJHH> <échéance>
+Usage : python tests/check_against_grib.py <modèle> <dossier du cycle> <AAAAMMJJHH> <échéance>
 Coordonnées et valeurs comparées à celles de l'itérateur ecCodes (ce que lit l'app).
 """
 
@@ -12,11 +12,11 @@ import eccodes
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ttwx import ecmwf  # noqa: E402
-from ttwx.grib import split_messages  # noqa: E402
+from ttwx.produce import MODELS  # noqa: E402
 from ttwx.tiles import decode_tile  # noqa: E402
 
-run_dir, run_text, step = Path(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+model = MODELS[sys.argv[1]]
+run_dir, run_text, step = Path(sys.argv[2]), sys.argv[3], int(sys.argv[4])
 run = datetime.strptime(run_text, "%Y%m%d%H").replace(tzinfo=timezone.utc)
 
 tiles = {}
@@ -39,9 +39,8 @@ for header, values in tiles.values():
 
 worst = {}
 checked = 0
-for message in split_messages(ecmwf.download_step(run, step)):
+for name, message in model.download_step(run, step):
     handle = eccodes.codes_new_from_message(message)
-    name = ecmwf.canonical_name(eccodes.codes_get(handle, "shortName"))
     index = names.index(name)
     iterator = eccodes.codes_grib_iterator_new(handle, 0)
     found = 0

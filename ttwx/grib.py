@@ -14,6 +14,10 @@ class Field:
     latitudes: np.ndarray   # croissantes (sud → nord)
     longitudes: np.ndarray  # croissantes dans [-180, 180[
     values: np.ndarray      # (nlat, nlon), NaN si absente
+    # Identité GRIB2 du paramètre (discipline, catégorie, numéro) et échéance de
+    # fin : plus fiable que le nom court, qui vaut parfois « unknown ».
+    parameter: tuple[int, int, int] = (0, 0, 0)
+    end_step: int = 0
 
 
 def split_messages(data: bytes) -> list[bytes]:
@@ -53,6 +57,12 @@ def decode_field(message: bytes) -> Field:
             missing = eccodes.codes_get(handle, "missingValue")
             values[values == missing] = np.nan
         short_name = eccodes.codes_get(handle, "shortName")
+        parameter = (
+            eccodes.codes_get(handle, "discipline"),
+            eccodes.codes_get(handle, "parameterCategory"),
+            eccodes.codes_get(handle, "parameterNumber"),
+        )
+        end_step = eccodes.codes_get(handle, "endStep")
     finally:
         eccodes.codes_release(handle)
 
@@ -76,4 +86,6 @@ def decode_field(message: bytes) -> Field:
         latitudes=latitudes[row_order],
         longitudes=longitudes[column_order],
         values=values[np.ix_(row_order, column_order)],
+        parameter=parameter,
+        end_step=end_step,
     )
