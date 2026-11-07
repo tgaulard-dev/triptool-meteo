@@ -70,7 +70,7 @@ jobs:
           fi
           # Sans les secrets R2 : la tâche horaire ne fait rien ; un lancement
           # à la main produit les tuiles (essai) sans les publier.
-          if [ -z "$R2_BUCKET" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+          if [ -z "$R2_SECRET_ACCESS_KEY" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
             echo "::notice::Secrets R2 absents : rien à faire."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -81,7 +81,7 @@ jobs:
             exit 1
           fi
           published=""
-          if [ -n "$R2_BUCKET" ]; then
+          if [ -n "$R2_SECRET_ACCESS_KEY" ]; then
             published="$(python -m ttwx remote-latest --model "$MODEL")"
           fi
           echo "Cycle complet : $run — publié : ${published:-aucun}"
@@ -100,7 +100,7 @@ jobs:
       - name: Publication sur R2
         if: steps.cycle.outputs.skip != 'true'
         run: |
-          if [ -z "$R2_BUCKET" ]; then
+          if [ -z "$R2_SECRET_ACCESS_KEY" ]; then
             echo "::notice::Secrets R2 absents : tuiles produites, non publiées."
             du -sh "build/$MODEL/${{ steps.cycle.outputs.run }}"
             ls "build/$MODEL/${{ steps.cycle.outputs.run }}" | wc -l
