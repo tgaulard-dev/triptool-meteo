@@ -68,12 +68,22 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # Sans les secrets R2 : la tâche horaire ne fait rien ; un lancement
+          # à la main produit les tuiles (essai) sans les publier.
+          if [ -z "$R2_BUCKET" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            echo "::notice::Secrets R2 absents : rien à faire."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           run="${INPUT_RUN:-$(python -m ttwx latest-run --model "$MODEL")}"
           if ! [[ "$run" =~ ^[0-9]{8}([01][0-9]|2[0-3])$ ]]; then
             echo "Cycle invalide : $run" >&2
             exit 1
           fi
-          published="$(python -m ttwx remote-latest --model "$MODEL")"
+          published=""
+          if [ -n "$R2_BUCKET" ]; then
+            published="$(python -m ttwx remote-latest --model "$MODEL")"
+          fi
           echo "Cycle complet : $run — publié : ${published:-aucun}"
           if [ "$run" = "$published" ] && [ "$INPUT_FORCE" != "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -89,4 +99,11 @@ jobs:
 
       - name: Publication sur R2
         if: steps.cycle.outputs.skip != 'true'
-        run: python -m ttwx publish "build/$MODEL/${{ steps.cycle.outputs.run }}"
+        run: |
+          if [ -z "$R2_BUCKET" ]; then
+            echo "::notice::Secrets R2 absents : tuiles produites, non publiées."
+            du -sh "build/$MODEL/${{ steps.cycle.outputs.run }}"
+            ls "build/$MODEL/${{ steps.cycle.outputs.run }}" | wc -l
+            exit 0
+          fi
+          python -m ttwx publish "build/$MODEL/${{ steps.cycle.outputs.run }}"
