@@ -1,0 +1,76 @@
+name: Tuiles ECMWF
+
+# Vérifie chaque heure si un cycle ECMWF plus récent que celui publié est
+# complet (00 UTC vers 8 h, 12 UTC vers 20 h) ; sinon le travail s'arrête
+# en moins d'une minute.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "Cycle à produire (AAAAMMJJHH), vide = dernier complet"
+        required: false
+        default: ""
+      force:
+        description: "Republier même si ce cycle est déjà en ligne"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ecmwf
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tuiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      INPUT_RUN: ${{ inputs.run }}
+      INPUT_FORCE: ${{ inputs.force }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Dépendances
+        run: pip install -r requirements.txt
+
+      - name: Tests du format
+        run: python -m unittest discover tests
+
+      - name: Cycle à produire
+        id: cycle
+        run: |
+          run="${INPUT_RUN:-$(python -m ttwx latest-run --model ecmwf)}"
+          if ! [[ "$run" =~ ^[0-9]{8}(00|12)$ ]]; then
+            echo "Cycle invalide : $run" >&2
+            exit 1
+          fi
+          published="$(python -m ttwx remote-latest --model ecmwf)"
+          echo "Cycle complet : $run — publié : ${published:-aucun}"
+          if [ "$run" = "$published" ] && [ "$INPUT_FORCE" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$published" ] && [ "$run" \< "$published" ] && [ "$INPUT_FORCE" != "true" ]; then
+            echo "Cycle plus ancien que celui en ligne : rien à faire."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+      - name: Production des tuiles
+        if: steps.cycle.outputs.skip != 'true'
+        run: python -m ttwx produce --model ecmwf --run "${{ steps.cycle.outputs.run }}" --out build
+
+      - name: Publication sur R2
+        if: steps.cycle.outputs.skip != 'true'
+        run: python -m ttwx publish "build/ecmwf/${{ steps.cycle.outputs.run }}"
