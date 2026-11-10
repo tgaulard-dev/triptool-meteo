@@ -85,7 +85,14 @@ def publish_run(run_dir: Path, *, keep: int = 2, workers: int = 16) -> None:
                       ContentType="application/json", CacheControl=SHORT)
     log.info("latest.json → %s", run_id)
 
-    _purge_old_runs(client, bucket, model, keep=keep)
+    # La purge n'est qu'un ménage : le cycle est déjà en ligne. R2 refuse parfois
+    # les suppressions en rafale (ServiceUnavailable) ; le cycle suivant reprend
+    # alors tout ce qui dépasse `keep`, sans faire échouer la publication.
+    try:
+        _purge_old_runs(client, bucket, model, keep=keep)
+    except ClientError as error:
+        log.warning("purge des anciens cycles de %s reportée au prochain cycle : %s", model, error)
+        print(f"::warning::Purge des anciens cycles {model} reportée : {error}")
 
 
 def _purge_old_runs(client, bucket: str, model: str, *, keep: int) -> None:
